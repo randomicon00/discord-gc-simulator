@@ -1,4 +1,4 @@
-# discord gc simulator (toy)
+# Discord GC Simulator 
 
 this is a small experiment i made to understand a specific latency pattern:
 apps can look "fast" on median latency, but still get painful spikes in p99/p99.9 because of GC timing + big live heaps.
@@ -10,7 +10,7 @@ the main inspiration is Discord's engineering write-up:
 that post talks about their Read States service and recurring latency spikes that were tied to GC behavior at scale.
 this repo is NOT trying to reproduce discord infra 1:1, it's just a toy to make the same class of behavior easier to see locally.
 
-## what this simulates (roughly)
+## What this simulates (roughly)
 
 - big live cache (`ReadState`) so GC has real scan work
 - steady request loop (`request-rate`)
@@ -24,7 +24,7 @@ this repo is NOT trying to reproduce discord infra 1:1, it's just a toy to make 
   - spike timeline: per `spike-window`
   - spikes near forced GC events
 
-## run it
+## Run it
 
 ```bash
 mkdir -p /tmp/go-cache
@@ -42,7 +42,7 @@ some useful flags:
 - `-gomaxprocs` (default `1`)
 - `-gc-percent` (default `100`)
 
-## results (run on february 11, 2026)
+## Results (run on february 11, 2026)
 
 Command used:
 
@@ -69,7 +69,7 @@ quick interpretation:
 - Tail latency (`p99`, `p99.9`, `max`) worsens substantially under forced GC.
 - Spike incidence increases sharply and lines up with GC activity.
 
-### full output
+### Full output
 
 ```text
 === GC Latency Spike Simulator (Go) ===
@@ -147,9 +147,9 @@ spikes: Baseline=1  vs  Forced-GC=80
 Tip: run with GODEBUG=gctrace=1 to see runtime-level GC traces alongside these app-level latencies.
 ```
 
-## notes
+## Notes
 
-This is a toy model, but it captures a practical pattern seen in production systems:
+This is a test model, but it captures a practical pattern seen in production systems:
 
 - Throughput and median latency can look healthy.
 - Tail latency and spike frequency can still violate user-facing or trading SLOs.
