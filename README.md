@@ -1,28 +1,37 @@
-# GC Latency Spike Simulator (Go)
+# discord gc simulator (toy)
 
-A toy Go project to demonstrate how garbage-collection activity can create **tail-latency spikes** in latency-sensitive applications (chat systems, trading platforms, etc.), even when median latency remains similar.
+this is a small experiment i made to understand a specific latency pattern:
+apps can look "fast" on median latency, but still get painful spikes in p99/p99.9 because of GC timing + big live heaps.
 
-## What This Simulates
+the main inspiration is Discord's engineering write-up:
+- **Why Discord is switching from Go to Rust** (February 4, 2020):
+  https://discord.com/blog/why-discord-is-switching-from-go-to-rust
 
-- A large live cache (`ReadState`) to keep the GC live set meaningful.
-- A request loop with fixed scheduled rate (`request-rate`) and per-request allocations.
-- Two scenarios run back-to-back:
-  - `Baseline`: no forced GC.
-  - `Forced-GC`: triggers `runtime.GC()` on a fixed interval.
-- Latency metrics per scenario: `mean`, `p50`, `p95`, `p99`, `p99.9`, `max`.
-- Spike metrics:
-  - Count of requests above `spike-threshold`.
-  - Spike rate over time windows (`spike-window`).
-  - Spikes occurring near forced GC events.
+that post talks about their Read States service and recurring latency spikes that were tied to GC behavior at scale.
+this repo is NOT trying to reproduce discord infra 1:1, it's just a toy to make the same class of behavior easier to see locally.
 
-## Run
+## what this simulates (roughly)
+
+- big live cache (`ReadState`) so GC has real scan work
+- steady request loop (`request-rate`)
+- per-request temporary allocations
+- two back to back scenarios:
+  - `Baseline` -> no forced GC
+  - `Forced-GC` -> calls `runtime.GC()` on interval
+- reports:
+  - latency: `mean`, `p50`, `p95`, `p99`, `p99.9`, `max`
+  - spikes: count above `spike-threshold`
+  - spike timeline: per `spike-window`
+  - spikes near forced GC events
+
+## run it
 
 ```bash
 mkdir -p /tmp/go-cache
 GOCACHE=/tmp/go-cache go run . -duration=10s
 ```
 
-Useful flags:
+some useful flags:
 
 - `-cache-entries` (default `500000`)
 - `-request-rate` (default `2000`)
@@ -33,7 +42,7 @@ Useful flags:
 - `-gomaxprocs` (default `1`)
 - `-gc-percent` (default `100`)
 
-## Results (Run on February 11, 2026)
+## results (run on february 11, 2026)
 
 Command used:
 
@@ -41,7 +50,7 @@ Command used:
 GOCACHE=/tmp/go-cache go run . -duration=10s
 ```
 
-### Key numbers
+### key numbers
 
 | Metric | Baseline | Forced-GC |
 |---|---:|---:|
@@ -54,13 +63,13 @@ GOCACHE=/tmp/go-cache go run . -duration=10s
 | Spikes `>= 5ms` | 1 | 80 |
 | GC cycles | 1 | 39 |
 
-Interpretation:
+quick interpretation:
 
 - Typical latency (`p50`, `p95`) is similar between scenarios.
 - Tail latency (`p99`, `p99.9`, `max`) worsens substantially under forced GC.
 - Spike incidence increases sharply and lines up with GC activity.
 
-### Full output
+### full output
 
 ```text
 === GC Latency Spike Simulator (Go) ===
@@ -138,7 +147,7 @@ spikes: Baseline=1  vs  Forced-GC=80
 Tip: run with GODEBUG=gctrace=1 to see runtime-level GC traces alongside these app-level latencies.
 ```
 
-## Notes
+## notes
 
 This is a toy model, but it captures a practical pattern seen in production systems:
 
